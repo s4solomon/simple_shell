@@ -1,71 +1,114 @@
 #ifndef SHELL_H
 #define SHELL_H
 
+/* header files */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <errno.h>
+
+/* Global variable */
+extern char **environ;
+
+/* Macros */
+#define BUFSIZE 256
+#define TOKENSIZE 64
+#define PRINT(c) (write(STDOUT_FILENO, c, _strlen(c)))
+#define PROMPT "$ "
+#define SUCCESS (1)
+#define FAIL (-1)
+#define NEUTRAL (0)
+
+/* Struct */
 
 /**
- * struct list - path directory list structure.
- * @dir: directory path.
- * @next: pointer to next directory node.
+ * struct sh_data - Global data structure
+ * @line: the line input
+ * @args: the arguments token
+ * @error_msg: the global path
+ * @cmd: the parsed command
+ * @index: the command index
+ * @oldpwd: the old path visited
+ * @env: the environnment
+ *
+ * Description: A structure contains all the variables needed to manage
+ * the program, memory and accessability
  */
-typedef struct list
+typedef struct sh_data
 {
-	char *dir;
-	struct list *next;
-} list_t;
+	char *line;
+	char **args;
+	char *cmd;
+	char *error_msg;
+	char *oldpwd;
+	unsigned long int index;
+	char *env;
+} sh_t;
+/**
+ * struct builtin - Manage the builtin functions
+ * @cmd: the command line on string form
+ * @f: the associated function
+ *
+ * Description: this struct made to manage builtins cmd
+ */
+typedef struct builtin
+{
+	char *cmd;
+	int (*f)(sh_t *data);
+} blt_t;
+/* ----------Process prototype------------*/
+int read_line(sh_t *);
+int split_line(sh_t *);
+int parse_line(sh_t *);
+int process_cmd(sh_t *);
 
-/* main.c */
-int start_shell(list_t *path, char **env, char *program_name, int mode);
-int execute_buffer(char *buffer, list_t *path, char **env, char *program_name);
-int execute_command(char *new_buffer, list_t *path, char **env,
-			int final, char *program_name);
-int execute_fork(char **input, char *program_name);
+/* ----------String prototype------------*/
+char *_strdup(char *str);
+char *_strcat(char *first, char *second);
+int _strlen(char *str);
+char *_strchr(char *str, char c);
+int _strcmp(char *s1, char *s2);
 
-/* env-list.c */
-list_t *list_path(char **env);
-list_t *create_list(char **environ);
-list_t *add_list(list_t **head, char *dir);
-void free_list(list_t *head);
+/* ----------More String prototype-------*/
+char *_strcpy(char *dest, char *source);
 
-/* dmemory.c */
-char *get_path(char *buffer, list_t **path);
-char *aux_get_path(list_t *list_pointer,
-	char *slash_command, char *slash_input, char *input);
-char *clean_spaces(char *buffer);
-char **create_argv(char *input_buffer, list_t **path);
-void free_argv(char **argv);
+/* ----------Memory prototype------------*/
+void *_realloc(void *ptr, unsigned int old_size, unsigned int new_size);
+char *_memset(char *s, char byt, unsigned int n);
+char *_memcpy(char *dest, char *src, unsigned int n);
+int free_data(sh_t *);
 
-/* built-ins.c */
-char *clean_comments(char *buffer);
-int check_builtin(char *command);
-int check_syntax(char *buffer);
-int builtins(char **input, char **env);
-void print_help(char **input);
+/* ----------Tools prototype-------------*/
+void *fill_an_array(void *a, int el, unsigned int len);
+void signal_handler(int signo);
+char *_getenv(char *path_name);
+void index_cmd(sh_t *data);
+void array_rev(char *arr, int len);
 
-/* strings-1.c */
-int str_len(char *s);
-char *str_cpy(char *dest, char *src);
-char *str_dup(char *str);
-char *str_cat(char *dest, char *src);
-char *str_con(char *s1, char *s2);
+/* ----------More tools prototype--------*/
+char *_itoa(unsigned int n);
+int intlen(int num);
+int _atoi(char *c);
+int print_error(sh_t *data);
+int write_history(sh_t *data);
+int _isalpha(int c);
 
-/* strings-2.c */
-int not_empty(char *input_buffer);
-int str_twins(char *s1, char *s2);
-int str_count(char *buffer, char c);
-char *str_tr(char *buffer, char old_char, char new_char);
+/* -------------Builtins-----------------*/
+int abort_prg(sh_t *data);
+int change_dir(sh_t *data);
+int display_help(sh_t *data);
+int handle_builtin(sh_t *data);
+int check_builtin(sh_t *data);
 
-/* errors.c */
-void ctrl_c(__attribute__((unused)) int x);
-void print_error(char *program_name, char *input, int error_num);
+/* -------------Parse-----------------*/
+int is_path_form(sh_t *data);
+void is_short_form(sh_t *data);
+int is_builtin(sh_t *data);
 
-#endif
+#endif /* SHELL_H */
